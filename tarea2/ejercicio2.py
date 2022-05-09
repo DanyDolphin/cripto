@@ -1,57 +1,73 @@
 import hashlib
 
+"""
+Archivo para el ejercicio 2 de la tarea
+"""
 
 
-def lee(archivo):
-    usuarios = []
-    with open(archivo) as file:
-        for linea in file:
-            fila = linea.split("$")
-            print(fila[2].strip())
-            
-            usuario = (bytes.fromhex(fila[1]) , bytes.fromhex(fila[2].strip("\n")))
-            usuarios.append(usuario)
-    return usuarios
 
-def getLote(tamanio):
-    lote = []
+def pedazo(tamanio):
+    """
+    Método para regresar un pedszo de contraseñas del archivo de contraseñas para no estar
+    revisando todas de jalon, ya que se puede acabar la memoria para ciertas conputadoras
+    limitas en memoria
+    """
+    p = []
     contador = 0
     with open("realhuman_phill.txt", "rb") as file:
         for linea in file:
-            lote.append(linea[:-1])
+            p.append(linea[:-1])
             contador += 1
             if contador == tamanio:
                 contador = 0
-                yield lote
-                lote = []
-        if contador < tamanio:
-            yield lote
-def encuentraContra(sal, hashContra, contrasenias):
-    for i in contrasenias:
-        s = hashlib.sha256(sal+i).digest()
-        s1 = hashlib.sha256(i+sal).digest()
+                # ocuapmos la funcion generadora para que guarde la lista conforme se va generando,
+                # ya que si llenamos la lista con todo el archivo de 6 millones de contraseñas
+                # se tiene que construir primero la lista de ese tamaño
 
-        if s == hashContra or s1 == hashContra:
+                yield p
+                p = []
+        if contador < tamanio:
+            #regresamos el generador 
+            
+            yield p
+
+
+def juanito():
+    """
+    Método para encontrar la contraseña de juanito
+    """
+
+    sal = bytes.fromhex("d8201aae236713fefe9a5266dc1f8012")
+    contraseniaHasheada = bytes.fromhex("5f495364792782144918397bdbb72bc04326a883138a11f3d0b61a3d2576ca00")
+    contrasenias = pedazo(1000000)
+    for i in contrasenias:         
+        contrasenia = hashlib.scrypt(i, salt=sal,n=2*16, r=8, p=1, maxmem=2*30, dklen=32)
+        if contrasenia == contraseniaHasheada:
             return i
 
 
-def decode(idUsuario):
-    g = getLote(1000)
-    for lote in g:
-        contra = encuentraContra(usuarios[idUsuario][0], usuarios[idUsuario][1],  lote)
-        if contra != None:
-            return contra
-    print("NO")
-
-def decodeContra():
-    with open("res.txt", "w") as file:
-        for contrasenia in range(1):
-            file.write("usario {} {}\n".format(contrasenia, decode(contrasenia)) )
-    return "chidos"
-
 if __name__ == "__main__":
     archivo = "./BD_jaqueada.txt"
-    usuarios = lee(archivo)
+    usuarios = []
+    with open(archivo) as file:
+        for linea in file:
+            fila = linea.split("$")           
+            usuario = (bytes.fromhex(fila[1]) , bytes.fromhex(fila[2].strip("\n")))
+            usuarios.append(usuario)
     
-    print(decodeContra())
+    with open("res.txt", "w") as file:
+       for contrasenia in range(500):
+            g = pedazo(100000)
+            for pe in g:
+
+                for i in pe:
+                    contrasenia1 = hashlib.sha256(usuarios[contrasenia][0]+i).digest()
+                    contrasenia2 = hashlib.sha256(i+usuarios[contrasenia][0]).digest()
+
+                    if contrasenia1 == usuarios[contrasenia][1] or contrasenia2 == usuarios[contrasenia][1]:
+                        
+                        if i != None:
+                            file.write("{}{}\n".format(contrasenia, i))  
+
+    
 
